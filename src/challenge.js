@@ -11,7 +11,7 @@ solverIframe.style.opacity = 0;
 solverIframe.style.pointerEvents = "none";
 solverIframe.tabIndex = -1;
 solverIframe.src =
-    "https://raw.githubusercontent.com/ChocoLZS/OldTweetDeck/patch/src/solver.html?1"; // check source code of that page to make sure its safe if u dont trust it
+    "https://raw.githubusercontent.com/ChocoLZS/OldTweetDeck/refs/heads/patch/src/sovler.html?1"; // check source code of that page to make sure its safe if u dont trust it
 fetch(solverIframe.src).catch(() => {
     console.error("Cannot load solver iframe");
     solverErrored = true;
