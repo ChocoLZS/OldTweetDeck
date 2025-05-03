@@ -749,6 +749,21 @@ const proxyRoutes = [
                     longform_notetweets_inline_media_enabled: true,
                     responsive_web_media_download_video_enabled: false,
                     responsive_web_enhance_cards_enabled: false,
+                    rweb_tipjar_consumption_enabled: false,
+                    communities_web_enable_tweet_community_results_fetch: false,
+                    premium_content_api_read_enabled: false,
+                    responsive_web_grok_share_attachment_enabled: false,
+                    c9s_tweet_anatomy_moderator_badge_enabled: false,
+                    responsive_web_grok_analyze_button_fetch_trends_enabled: false,
+                    profile_label_improvements_pcf_label_in_post_enabled: false,
+                    responsive_web_grok_analyze_post_followups_enabled: false,
+                    responsive_web_grok_analysis_button_from_backend: false,
+                    responsive_web_grok_show_grok_translated_post: false,
+                    articles_preview_enabled: false,
+                    responsive_web_jetfuel_frame: false,
+                    rweb_video_screen_enabled: false,
+                    creator_subscriptions_quote_tweet_preview_enabled: false,
+                    responsive_web_grok_image_annotation_enabled: false,
                 };
 
                 if (!user_id) {
@@ -2167,6 +2182,7 @@ XMLHttpRequest = function () {
                             await solveChallenge(parsedUrl.pathname, method)
                         );
                     } catch (e) {
+                        console.error("x-client-transaction-id error: ", e);
                         if (
                             localStorage.secureRequests &&
                             Date.now() - OTD_INIT_TIME > 3000
