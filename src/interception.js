@@ -7,39 +7,62 @@ const cursors = {};
 const OTD_INIT_TIME = Date.now();
 
 const generateID = () => {
-    return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-}
+    return (
+        Math.random().toString(36).substring(2, 15) +
+        Math.random().toString(36).substring(2, 15)
+    );
+};
 
-let verifiedUser = localStorage.OTDverifiedUser ? JSON.parse(localStorage.OTDverifiedUser) : null;
+let verifiedUser = localStorage.OTDverifiedUser
+    ? JSON.parse(localStorage.OTDverifiedUser)
+    : null;
 let feeds = localStorage.OTDfeeds ? JSON.parse(localStorage.OTDfeeds) : {};
-let columns = localStorage.OTDcolumns ? JSON.parse(localStorage.OTDcolumns) : {};
-let settings = localStorage.OTDsettings ? JSON.parse(localStorage.OTDsettings) : null;
+let columns = localStorage.OTDcolumns
+    ? JSON.parse(localStorage.OTDcolumns)
+    : {};
+let settings = localStorage.OTDsettings
+    ? JSON.parse(localStorage.OTDsettings)
+    : null;
 
 function exportState() {
-	const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([JSON.stringify({
-        feeds, 
-        columns,
-        settings,
-        columnIds: localStorage.OTDcolumnIds ? JSON.parse(localStorage.OTDcolumnIds) : []
-    })], {type: 'application/json'}));
-    a.download = 'OTDState.json';
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(
+        new Blob(
+            [
+                JSON.stringify({
+                    feeds,
+                    columns,
+                    settings,
+                    columnIds: localStorage.OTDcolumnIds
+                        ? JSON.parse(localStorage.OTDcolumnIds)
+                        : [],
+                }),
+            ],
+            { type: "application/json" }
+        )
+    );
+    a.download = "OTDState.json";
     a.click();
 }
 
 function importState() {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.json';
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".json";
     input.onchange = async () => {
         const file = input.files[0];
-        if(!file) return;
+        if (!file) return;
         const reader = new FileReader();
         reader.onload = async (e) => {
             const text = e.target.result;
             try {
                 const data = JSON.parse(text);
-                if(!data.feeds || !data.columns || !data.settings || !data.columnIds) {
+                if (
+                    !data.feeds ||
+                    !data.columns ||
+                    !data.settings ||
+                    !data.columnIds
+                ) {
                     throw new Error("Invalid file");
                 }
                 localStorage.OTDfeeds = JSON.stringify(data.feeds);
@@ -47,7 +70,7 @@ function importState() {
                 localStorage.OTDsettings = JSON.stringify(data.settings);
                 localStorage.OTDcolumnIds = JSON.stringify(data.columnIds);
                 location.reload();
-            } catch(e) {
+            } catch (e) {
                 alert("Error parsing file");
             }
         };
@@ -57,15 +80,17 @@ function importState() {
 }
 
 function cleanUp() {
-    let ids = localStorage.OTDcolumnIds ? JSON.parse(localStorage.OTDcolumnIds) : [];
-    for(let columnId in columns) {
-        if(!ids.includes(columnId)) {
+    let ids = localStorage.OTDcolumnIds
+        ? JSON.parse(localStorage.OTDcolumnIds)
+        : [];
+    for (let columnId in columns) {
+        if (!ids.includes(columnId)) {
             delete columns[columnId];
         }
     }
     localStorage.OTDcolumns = JSON.stringify(columns);
-    for(let id in feeds) {
-        if(!localStorage.OTDcolumns.includes(id)) {
+    for (let id in feeds) {
+        if (!localStorage.OTDcolumns.includes(id)) {
             delete feeds[id];
         }
     }
@@ -73,40 +98,57 @@ function cleanUp() {
 }
 
 function getFollows(id = getCurrentUserId(), cursor = -1, count = 5000) {
-	return new Promise(function (resolve, reject) {
-		var xhr = new XMLHttpRequest();
-		xhr.open("GET", `https://api.${location.hostname}/1.1/friends/ids.json?user_id=${id}&cursor=${cursor}&stringify_ids=true&count=${count}`, true);
-		xhr.setRequestHeader("X-Twitter-Active-User", "yes");
-		xhr.setRequestHeader("X-Twitter-Auth-Type", "OAuth2Session");
-		xhr.setRequestHeader("X-Twitter-Client-Language", "en");
-		xhr.setRequestHeader("Authorization", "Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA");
-		xhr.setRequestHeader("X-Csrf-Token", (function () {
-			var csrf = document.cookie.match(/(?:^|;\s*)ct0=([0-9a-f]+)\s*(?:;|$)/);
-			return csrf ? csrf[1] : "";
-		})());
-		xhr.withCredentials = true;
+    return new Promise(function (resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.open(
+            "GET",
+            `https://api.${location.hostname}/1.1/friends/ids.json?user_id=${id}&cursor=${cursor}&stringify_ids=true&count=${count}`,
+            true
+        );
+        xhr.setRequestHeader("X-Twitter-Active-User", "yes");
+        xhr.setRequestHeader("X-Twitter-Auth-Type", "OAuth2Session");
+        xhr.setRequestHeader("X-Twitter-Client-Language", "en");
+        xhr.setRequestHeader(
+            "Authorization",
+            "Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA"
+        );
+        xhr.setRequestHeader(
+            "X-Csrf-Token",
+            (function () {
+                var csrf = document.cookie.match(
+                    /(?:^|;\s*)ct0=([0-9a-f]+)\s*(?:;|$)/
+                );
+                return csrf ? csrf[1] : "";
+            })()
+        );
+        xhr.withCredentials = true;
 
-		xhr.onreadystatechange = function () {
-			if (xhr.readyState === 4 && xhr.status === 200) {
-				resolve(JSON.parse(xhr.responseText));
-			} else if (xhr.readyState === 4 && xhr.status !== 200) {
+        xhr.onreadystatechange = function () {
+            if (xhr.readyState === 4 && xhr.status === 200) {
+                resolve(JSON.parse(xhr.responseText));
+            } else if (xhr.readyState === 4 && xhr.status !== 200) {
                 reject(xhr);
             }
-		};
-		
-		xhr.send();
-	});
+        };
+
+        xhr.send();
+    });
 }
 
 let followsData = JSON.parse(localStorage.OTDfollowsData || "{}");
 
 let updatingFollows = false;
 function updateFollows(id = getCurrentUserId()) {
-    if(followsData[id] && followsData[id].lastUpdate && Date.now() - +followsData[id].lastUpdate < 1000 * 60 * 60 * 6) return;
-    if(updatingFollows) return;
+    if (
+        followsData[id] &&
+        followsData[id].lastUpdate &&
+        Date.now() - +followsData[id].lastUpdate < 1000 * 60 * 60 * 6
+    )
+        return;
+    if (updatingFollows) return;
     updatingFollows = true;
 
-    if(!followsData[id]) followsData[id] = {};
+    if (!followsData[id]) followsData[id] = {};
     let newfollows = [];
     let cursor = -1;
     let count = 5000;
@@ -114,7 +156,7 @@ function updateFollows(id = getCurrentUserId()) {
     let get = async () => {
         let res = await getFollows(id, cursor, count);
         newfollows = newfollows.concat(res.ids);
-        if(res.next_cursor_str === "0" || i++ > 10) {
+        if (res.next_cursor_str === "0" || i++ > 10) {
             followsData[id].lastUpdate = Date.now();
             followsData[id].data = newfollows;
             localStorage.OTDfollowsData = JSON.stringify(followsData);
@@ -136,8 +178,12 @@ function parseNoteTweet(result) {
     if (result.note_tweet.note_tweet_results.result) {
         text = result.note_tweet.note_tweet_results.result.text;
         entities = result.note_tweet.note_tweet_results.result.entity_set;
-        if (result.note_tweet.note_tweet_results.result.richtext?.richtext_tags.length) {
-            entities.richtext = result.note_tweet.note_tweet_results.result.richtext.richtext_tags; // logically, richtext is an entity, right?
+        if (
+            result.note_tweet.note_tweet_results.result.richtext?.richtext_tags
+                .length
+        ) {
+            entities.richtext =
+                result.note_tweet.note_tweet_results.result.richtext.richtext_tags; // logically, richtext is an entity, right?
         }
     } else {
         text = result.note_tweet.note_tweet_results.text;
@@ -149,7 +195,9 @@ function parseNoteTweet(result) {
 function parseTweet(res) {
     if (typeof res !== "object") return;
     if (res.limitedActionResults) {
-        let limitation = res.limitedActionResults.limited_actions.find((l) => l.action === "Reply");
+        let limitation = res.limitedActionResults.limited_actions.find(
+            (l) => l.action === "Reply"
+        );
         if (limitation) {
             res.tweet.legacy.limited_actions_text = limitation.prompt
                 ? limitation.prompt.subtext.text
@@ -186,12 +234,17 @@ function parseTweet(res) {
             result.quoted_status_result.result.core &&
             result.quoted_status_result.result.core.user_results.result.legacy
         ) {
-            result.legacy.quoted_status = result.quoted_status_result.result.legacy;
+            result.legacy.quoted_status =
+                result.quoted_status_result.result.legacy;
             if (result.legacy.quoted_status) {
                 result.legacy.quoted_status.user =
                     result.quoted_status_result.result.core.user_results.result.legacy;
-                result.legacy.quoted_status.user.id_str = result.legacy.quoted_status.user_id_str;
-                if (result.quoted_status_result.result.core.user_results.result.is_blue_verified) {
+                result.legacy.quoted_status.user.id_str =
+                    result.legacy.quoted_status.user_id_str;
+                if (
+                    result.quoted_status_result.result.core.user_results.result
+                        .is_blue_verified
+                ) {
                     result.legacy.quoted_status.user.verified = true;
                     result.legacy.quoted_status.user.verified_type = "Blue";
                 }
@@ -201,15 +254,19 @@ function parseTweet(res) {
         }
         tweet.retweeted_status = result.legacy;
         if (tweet.retweeted_status && result.core.user_results.result.legacy) {
-            tweet.retweeted_status.user = result.core.user_results.result.legacy;
-            tweet.retweeted_status.user.id_str = tweet.retweeted_status.user_id_str;
+            tweet.retweeted_status.user =
+                result.core.user_results.result.legacy;
+            tweet.retweeted_status.user.id_str =
+                tweet.retweeted_status.user_id_str;
             if (result.core.user_results.result.is_blue_verified) {
                 tweet.retweeted_status.user.verified = true;
                 tweet.retweeted_status.user.verified_type = "Blue";
             }
             tweet.retweeted_status.ext = {};
             if (result.views) {
-                tweet.retweeted_status.ext.views = { r: { ok: { count: +result.views.count } } };
+                tweet.retweeted_status.ext.views = {
+                    r: { ok: { count: +result.views.count } },
+                };
             }
             if (res.card && res.card.legacy && res.card.legacy.binding_values) {
                 tweet.retweeted_status.card = res.card.legacy;
@@ -254,14 +311,17 @@ function parseTweet(res) {
             if (!tweet.quoted_status.user) {
                 delete tweet.quoted_status;
             } else {
-                tweet.quoted_status.user.id_str = tweet.quoted_status.user_id_str;
+                tweet.quoted_status.user.id_str =
+                    tweet.quoted_status.user_id_str;
                 if (result.core.user_results.result.is_blue_verified) {
                     tweet.quoted_status.user.verified = true;
                     tweet.quoted_status.user.verified_type = "Blue";
                 }
                 tweet.quoted_status.ext = {};
                 if (result.views) {
-                    tweet.quoted_status.ext.views = { r: { ok: { count: +result.views.count } } };
+                    tweet.quoted_status.ext.views = {
+                        r: { ok: { count: +result.views.count } },
+                    };
                 }
             }
         } else {
@@ -302,15 +362,22 @@ function parseTweet(res) {
 function getCurrentUserId() {
     let accounts = TD.storage.accountController.getAll();
     let screen_name = TD.storage.accountController.getUserIdentifier();
-    let account = accounts.find((account) => account.state.username === screen_name);
-    return account?.state?.userId ?? verifiedUser?.id_str ?? localStorage.twitterAccountID;
+    let account = accounts.find(
+        (account) => account.state.username === screen_name
+    );
+    return (
+        account?.state?.userId ??
+        verifiedUser?.id_str ??
+        localStorage.twitterAccountID
+    );
 }
 
 function generateParams(features, variables, fieldToggles) {
     let params = new URLSearchParams();
     params.append("variables", JSON.stringify(variables));
     params.append("features", JSON.stringify(features));
-    if (fieldToggles) params.append("fieldToggles", JSON.stringify(fieldToggles));
+    if (fieldToggles)
+        params.append("fieldToggles", JSON.stringify(fieldToggles));
 
     return params.toString();
 }
@@ -373,7 +440,8 @@ const proxyRoutes = [
         //     }
         // },
         beforeSendHeaders: (xhr) => {
-            xhr.storage.user_id = xhr.modReqHeaders["x-act-as-user-id"] ?? getCurrentUserId();
+            xhr.storage.user_id =
+                xhr.modReqHeaders["x-act-as-user-id"] ?? getCurrentUserId();
             xhr.modReqHeaders["Content-Type"] = "application/json";
             xhr.modReqHeaders["X-Twitter-Active-User"] = "yes";
             xhr.modReqHeaders["X-Twitter-Client-Language"] = "en";
@@ -393,32 +461,31 @@ const proxyRoutes = [
                 return [];
             }
 
-            if(localStorage.OTDshowAllRepliesInHome === '1') {
+            if (localStorage.OTDshowAllRepliesInHome === "1") {
                 return data;
-            } 
+            }
 
             let userId = xhr.storage.user_id;
             let follows = followsData[userId];
-            if(follows && follows.data) follows = follows.data;
+            if (follows && follows.data) follows = follows.data;
             else follows = [];
 
-            let filtered = data.filter(t => 
-                !t.in_reply_to_user_id_str || // not a reply
-                t.user.id_str === userId || // my tweet
-                (
+            let filtered = data.filter(
+                (t) =>
+                    !t.in_reply_to_user_id_str || // not a reply
+                    t.user.id_str === userId || // my tweet
                     // reply to someone i follow from someone i follow
-                    follows.includes(t.in_reply_to_user_id_str) && 
-                    t.user.following && t.entities.user_mentions.every(user => follows.includes(user.id_str))
-                ) ||
-                (
+                    (follows.includes(t.in_reply_to_user_id_str) &&
+                        t.user.following &&
+                        t.entities.user_mentions.every((user) =>
+                            follows.includes(user.id_str)
+                        )) ||
                     // reply to me from someone i follow
-                    t.in_reply_to_user_id_str === userId &&
-                    t.user.following
-                )
+                    (t.in_reply_to_user_id_str === userId && t.user.following)
             );
 
             return filtered;
-        }
+        },
         // responseHeaderOverride: {
         //     // slow it down a bit
         //     "x-rate-limit-limit": (value) => {
@@ -699,7 +766,7 @@ const proxyRoutes = [
                 }
                 xhr.storage.user_id = variables.userId;
 
-                xhr.modUrl = `${NEW_API}/wxoVeDnl0mP7VLhe6mTOdg/UserTweetsAndReplies?${generateParams(
+                xhr.modUrl = `${NEW_API}/pBNL1QqK_TKItBqwTNBbeg/UserTweetsAndReplies?${generateParams(
                     features,
                     variables
                 )}`;
@@ -712,7 +779,13 @@ const proxyRoutes = [
             xhr.modReqHeaders["X-Twitter-Active-User"] = "yes";
             xhr.modReqHeaders["X-Twitter-Client-Language"] = "en";
             xhr.modReqHeaders["Authorization"] =
-                PUBLIC_TOKENS[localStorage.OTDuseDifferentToken === "1" ? (Math.random() > 0.5 ? 1 : 0) : 0];
+                PUBLIC_TOKENS[
+                    localStorage.OTDuseDifferentToken === "1"
+                        ? Math.random() > 0.5
+                            ? 1
+                            : 0
+                        : 0
+                ];
             delete xhr.modReqHeaders["X-Twitter-Client-Version"];
             // delete xhr.modReqHeaders["x-act-as-user-id"];
         },
@@ -727,8 +800,11 @@ const proxyRoutes = [
             if (data.errors && data.errors[0]) {
                 return [];
             }
-            let instructions = data.data.user.result.timeline_v2.timeline.instructions;
-            let entries = instructions.find((e) => e.type === "TimelineAddEntries");
+            let instructions =
+                data.data.user.result.timeline_v2.timeline.instructions;
+            let entries = instructions.find(
+                (e) => e.type === "TimelineAddEntries"
+            );
             if (!entries) {
                 return [];
             }
@@ -748,7 +824,10 @@ const proxyRoutes = [
                         let result = item.item.itemContent.tweet_results.result;
                         if (item.entryId.includes("-tweet-")) {
                             let tweet = parseTweet(result);
-                            if (tweet && tweet.user.id_str === xhr.storage.user_id) {
+                            if (
+                                tweet &&
+                                tweet.user.id_str === xhr.storage.user_id
+                            ) {
                                 tweets.push(tweet);
                             }
                         }
@@ -760,7 +839,9 @@ const proxyRoutes = [
 
             // i didn't know they return tweets unsorted???
             tweets.sort(
-                (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+                (a, b) =>
+                    new Date(b.created_at).getTime() -
+                    new Date(a.created_at).getTime()
             );
 
             let cursor = entries.find(
@@ -769,17 +850,22 @@ const proxyRoutes = [
                     e.entryId.startsWith("cursor-bottom-")
             ).content.value;
             if (cursor) {
-                cursors[`${xhr.storage.user_id}-${tweets[tweets.length - 1].id_str}`] = cursor;
+                cursors[
+                    `${xhr.storage.user_id}-${tweets[tweets.length - 1].id_str}`
+                ] = cursor;
             }
 
-            let pinEntry = instructions.find((e) => e.type === "TimelinePinEntry");
+            let pinEntry = instructions.find(
+                (e) => e.type === "TimelinePinEntry"
+            );
             if (
                 pinEntry &&
                 pinEntry.entry &&
                 pinEntry.entry.content &&
                 pinEntry.entry.content.itemContent
             ) {
-                let result = pinEntry.entry.content.itemContent.tweet_results.result;
+                let result =
+                    pinEntry.entry.content.itemContent.tweet_results.result;
                 let pinnedTweet = parseTweet(result);
                 if (pinnedTweet) {
                     let tweetTimes = tweets.map((t) => [
@@ -791,7 +877,9 @@ const proxyRoutes = [
                         new Date(pinnedTweet.created_at).getTime(),
                     ]);
                     tweetTimes.sort((a, b) => b[1] - a[1]);
-                    let index = tweetTimes.findIndex((t) => t[0] === pinnedTweet.id_str);
+                    let index = tweetTimes.findIndex(
+                        (t) => t[0] === pinnedTweet.id_str
+                    );
                     if (index !== tweets.length) {
                         tweets.splice(index, 0, pinnedTweet);
                     }
@@ -867,27 +955,27 @@ const proxyRoutes = [
                 let params = new URLSearchParams(url.search);
                 let user_id = params.get("user_id") ?? getCurrentUserId();
                 let variables = {
-                    "userId": user_id,
-                    "count": 50,
-                    "includePromotedContent": false,
-                    "withSuperFollowsUserFields": true,
-                    "withDownvotePerspective": false,
-                    "withReactionsMetadata": false,
-                    "withReactionsPerspective": false,
-                    "withSuperFollowsTweetFields": true,
-                    "withClientEventToken": false,
-                    "withBirdwatchNotes": false,
-                    "withVoice": true,
-                    "withV2Timeline": true
+                    userId: user_id,
+                    count: 50,
+                    includePromotedContent: false,
+                    withSuperFollowsUserFields: true,
+                    withDownvotePerspective: false,
+                    withReactionsMetadata: false,
+                    withReactionsPerspective: false,
+                    withSuperFollowsTweetFields: true,
+                    withClientEventToken: false,
+                    withBirdwatchNotes: false,
+                    withVoice: true,
+                    withV2Timeline: true,
                 };
                 let features = {
-                    "dont_mention_me_view_api_enabled": true,
-                    "interactive_text_enabled": true,
-                    "responsive_web_uc_gql_enabled": false,
-                    "vibe_tweet_context_enabled": false,
-                    "responsive_web_edit_tweet_api_enabled": false,
-                    "standardized_nudges_misinfo": false,
-                    "responsive_web_enhance_cards_enabled": false
+                    dont_mention_me_view_api_enabled: true,
+                    interactive_text_enabled: true,
+                    responsive_web_uc_gql_enabled: false,
+                    vibe_tweet_context_enabled: false,
+                    responsive_web_edit_tweet_api_enabled: false,
+                    standardized_nudges_misinfo: false,
+                    responsive_web_enhance_cards_enabled: false,
                 };
 
                 let max_id = params.get("max_id");
@@ -895,7 +983,8 @@ const proxyRoutes = [
                     let bn = BigInt(params.get("max_id"));
                     bn += BigInt(1);
                     if (cursors[`${variables.userId}-${bn}-likes`]) {
-                        variables.cursor = cursors[`${variables.userId}-${bn}-likes`];
+                        variables.cursor =
+                            cursors[`${variables.userId}-${bn}-likes`];
                     }
                 }
                 xhr.storage.user_id = variables.userId;
@@ -913,7 +1002,13 @@ const proxyRoutes = [
             xhr.modReqHeaders["X-Twitter-Active-User"] = "yes";
             xhr.modReqHeaders["X-Twitter-Client-Language"] = "en";
             xhr.modReqHeaders["Authorization"] =
-                PUBLIC_TOKENS[localStorage.OTDuseDifferentToken === "1" ? (Math.random() > 0.5 ? 1 : 0) : 0];
+                PUBLIC_TOKENS[
+                    localStorage.OTDuseDifferentToken === "1"
+                        ? Math.random() > 0.5
+                            ? 1
+                            : 0
+                        : 0
+                ];
             delete xhr.modReqHeaders["X-Twitter-Client-Version"];
             // delete xhr.modReqHeaders["x-act-as-user-id"];
         },
@@ -928,17 +1023,26 @@ const proxyRoutes = [
             if (data.errors && data.errors[0]) {
                 return [];
             }
-            let instructions = data.data.user.result.timeline_v2.timeline.instructions;
-            let entries = instructions.find((e) => e.type === "TimelineAddEntries");
+            let instructions =
+                data.data.user.result.timeline_v2.timeline.instructions;
+            let entries = instructions.find(
+                (e) => e.type === "TimelineAddEntries"
+            );
             if (!entries) {
                 return [];
             }
             entries = entries.entries;
 
             let tweets = entries
-                .filter(e => e.entryId.startsWith('tweet-') && e.content.itemContent.tweet_results.result)
-                .map(e => parseTweet(e.content.itemContent.tweet_results.result))
-                .filter(e => e);
+                .filter(
+                    (e) =>
+                        e.entryId.startsWith("tweet-") &&
+                        e.content.itemContent.tweet_results.result
+                )
+                .map((e) =>
+                    parseTweet(e.content.itemContent.tweet_results.result)
+                )
+                .filter((e) => e);
 
             if (tweets.length === 0) return tweets;
 
@@ -948,12 +1052,18 @@ const proxyRoutes = [
                     e.entryId.startsWith("cursor-bottom-")
             ).content.value;
             if (cursor) {
-                cursors[`${xhr.storage.user_id}-${tweets[tweets.length - 1].id_str}-likes`] = cursor;
+                cursors[
+                    `${xhr.storage.user_id}-${
+                        tweets[tweets.length - 1].id_str
+                    }-likes`
+                ] = cursor;
             }
 
             // i didn't know they return tweets unsorted???
             tweets.sort(
-                (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+                (a, b) =>
+                    new Date(b.created_at).getTime() -
+                    new Date(a.created_at).getTime()
             );
 
             return tweets;
@@ -1016,7 +1126,29 @@ const proxyRoutes = [
                     querySource: "typed_query",
                     product: "Latest",
                 };
-                let features = {"responsive_web_graphql_exclude_directive_enabled":true,"verified_phone_label_enabled":false,"creator_subscriptions_tweet_preview_api_enabled":true,"responsive_web_graphql_timeline_navigation_enabled":true,"responsive_web_graphql_skip_user_profile_image_extensions_enabled":false,"communities_web_enable_tweet_community_results_fetch":true,"c9s_tweet_anatomy_moderator_badge_enabled":true,"tweetypie_unmention_optimization_enabled":true,"responsive_web_edit_tweet_api_enabled":true,"graphql_is_translatable_rweb_tweet_is_translatable_enabled":true,"view_counts_everywhere_api_enabled":true,"longform_notetweets_consumption_enabled":true,"responsive_web_twitter_article_tweet_consumption_enabled":true,"tweet_awards_web_tipping_enabled":false,"freedom_of_speech_not_reach_fetch_enabled":true,"standardized_nudges_misinfo":true,"tweet_with_visibility_results_prefer_gql_limited_actions_policy_enabled":true,"rweb_video_timestamps_enabled":true,"longform_notetweets_rich_text_read_enabled":true,"longform_notetweets_inline_media_enabled":true,"responsive_web_enhance_cards_enabled":false};
+                let features = {
+                    responsive_web_graphql_exclude_directive_enabled: true,
+                    verified_phone_label_enabled: false,
+                    creator_subscriptions_tweet_preview_api_enabled: true,
+                    responsive_web_graphql_timeline_navigation_enabled: true,
+                    responsive_web_graphql_skip_user_profile_image_extensions_enabled: false,
+                    communities_web_enable_tweet_community_results_fetch: true,
+                    c9s_tweet_anatomy_moderator_badge_enabled: true,
+                    tweetypie_unmention_optimization_enabled: true,
+                    responsive_web_edit_tweet_api_enabled: true,
+                    graphql_is_translatable_rweb_tweet_is_translatable_enabled: true,
+                    view_counts_everywhere_api_enabled: true,
+                    longform_notetweets_consumption_enabled: true,
+                    responsive_web_twitter_article_tweet_consumption_enabled: true,
+                    tweet_awards_web_tipping_enabled: false,
+                    freedom_of_speech_not_reach_fetch_enabled: true,
+                    standardized_nudges_misinfo: true,
+                    tweet_with_visibility_results_prefer_gql_limited_actions_policy_enabled: true,
+                    rweb_video_timestamps_enabled: true,
+                    longform_notetweets_rich_text_read_enabled: true,
+                    longform_notetweets_inline_media_enabled: true,
+                    responsive_web_enhance_cards_enabled: false,
+                };
 
                 xhr.modUrl = `${NEW_API}/l0dLMlz_fHji3FT8AfrvxA/SearchTimeline?${generateParams(
                     features,
@@ -1031,7 +1163,13 @@ const proxyRoutes = [
             xhr.modReqHeaders["X-Twitter-Active-User"] = "yes";
             xhr.modReqHeaders["X-Twitter-Client-Language"] = "en";
             xhr.modReqHeaders["Authorization"] =
-                PUBLIC_TOKENS[localStorage.OTDuseDifferentToken === "1" ? (Math.random() > 0.5 ? 1 : 0) : 0];
+                PUBLIC_TOKENS[
+                    localStorage.OTDuseDifferentToken === "1"
+                        ? Math.random() > 0.5
+                            ? 1
+                            : 0
+                        : 0
+                ];
             delete xhr.modReqHeaders["X-Twitter-Client-Version"];
         },
         afterRequest: (xhr) => {
@@ -1045,7 +1183,9 @@ const proxyRoutes = [
             if (data.errors && data.errors[0]) {
                 return [];
             }
-            let instructions = data.data.search_by_raw_query.search_timeline.timeline.instructions;
+            let instructions =
+                data.data.search_by_raw_query.search_timeline.timeline
+                    .instructions;
             let entries = instructions.find((i) => i.entries);
             if (!entries) {
                 return [];
@@ -1053,7 +1193,10 @@ const proxyRoutes = [
             entries = entries.entries;
             let res = [];
             for (let entry of entries) {
-                if (entry.entryId.startsWith("sq-I-t-") || entry.entryId.startsWith("tweet-")) {
+                if (
+                    entry.entryId.startsWith("sq-I-t-") ||
+                    entry.entryId.startsWith("tweet-")
+                ) {
                     let result = entry.content.itemContent.tweet_results.result;
 
                     if (entry.content.itemContent.promotedMetadata) {
@@ -1077,7 +1220,9 @@ const proxyRoutes = [
                 cursor = instructions.find(
                     (e) =>
                         e.entry_id_to_replace &&
-                        (e.entry_id_to_replace.startsWith("sq-cursor-bottom-") ||
+                        (e.entry_id_to_replace.startsWith(
+                            "sq-cursor-bottom-"
+                        ) ||
                             e.entry_id_to_replace.startsWith("cursor-bottom-"))
                 );
                 if (cursor) {
@@ -1146,7 +1291,9 @@ const proxyRoutes = [
             xhr.modReqHeaders["X-Twitter-Active-User"] = "yes";
             xhr.modReqHeaders["X-Twitter-Client-Language"] = "en";
             xhr.modReqHeaders["Authorization"] =
-                PUBLIC_TOKENS[localStorage.OTDuseDifferentToken === "1" ? 1 : 0];
+                PUBLIC_TOKENS[
+                    localStorage.OTDuseDifferentToken === "1" ? 1 : 0
+                ];
             delete xhr.modReqHeaders["X-Twitter-Client-Version"];
         },
         afterRequest: (xhr) => {
@@ -1160,7 +1307,9 @@ const proxyRoutes = [
             if (data.errors && data.errors[0]) {
                 return [];
             }
-            let instructions = data.data.search_by_raw_query.search_timeline.timeline.instructions;
+            let instructions =
+                data.data.search_by_raw_query.search_timeline.timeline
+                    .instructions;
             let entries = instructions.find((i) => i.entries);
             if (!entries) {
                 return [];
@@ -1168,7 +1317,10 @@ const proxyRoutes = [
             entries = entries.entries;
             let res = [];
             for (let entry of entries) {
-                if (entry.entryId.startsWith("sq-I-u-") || entry.entryId.startsWith("user-")) {
+                if (
+                    entry.entryId.startsWith("sq-I-u-") ||
+                    entry.entryId.startsWith("user-")
+                ) {
                     let result = entry.content.itemContent.user_results.result;
                     if (!result || !result.legacy) {
                         console.log("Bug: no user", entry);
@@ -1190,7 +1342,9 @@ const proxyRoutes = [
                 cursor = instructions.find(
                     (e) =>
                         e.entry_id_to_replace &&
-                        (e.entry_id_to_replace.startsWith("sq-cursor-bottom-") ||
+                        (e.entry_id_to_replace.startsWith(
+                            "sq-cursor-bottom-"
+                        ) ||
                             e.entry_id_to_replace.startsWith("cursor-bottom-"))
                 );
                 if (cursor) {
@@ -1249,7 +1403,31 @@ const proxyRoutes = [
 
             return JSON.stringify({
                 variables,
-                features: {"communities_web_enable_tweet_community_results_fetch":true,"c9s_tweet_anatomy_moderator_badge_enabled":true,"tweetypie_unmention_optimization_enabled":true,"responsive_web_edit_tweet_api_enabled":true,"graphql_is_translatable_rweb_tweet_is_translatable_enabled":true,"view_counts_everywhere_api_enabled":true,"longform_notetweets_consumption_enabled":true,"responsive_web_twitter_article_tweet_consumption_enabled":true,"tweet_awards_web_tipping_enabled":false,"creator_subscriptions_quote_tweet_preview_enabled":false,"longform_notetweets_rich_text_read_enabled":true,"longform_notetweets_inline_media_enabled":true,"articles_preview_enabled":true,"rweb_video_timestamps_enabled":true,"rweb_tipjar_consumption_enabled":true,"responsive_web_graphql_exclude_directive_enabled":true,"verified_phone_label_enabled":false,"freedom_of_speech_not_reach_fetch_enabled":true,"standardized_nudges_misinfo":true,"tweet_with_visibility_results_prefer_gql_limited_actions_policy_enabled":true,"responsive_web_graphql_skip_user_profile_image_extensions_enabled":false,"responsive_web_graphql_timeline_navigation_enabled":true,"responsive_web_enhance_cards_enabled":false},
+                features: {
+                    communities_web_enable_tweet_community_results_fetch: true,
+                    c9s_tweet_anatomy_moderator_badge_enabled: true,
+                    tweetypie_unmention_optimization_enabled: true,
+                    responsive_web_edit_tweet_api_enabled: true,
+                    graphql_is_translatable_rweb_tweet_is_translatable_enabled: true,
+                    view_counts_everywhere_api_enabled: true,
+                    longform_notetweets_consumption_enabled: true,
+                    responsive_web_twitter_article_tweet_consumption_enabled: true,
+                    tweet_awards_web_tipping_enabled: false,
+                    creator_subscriptions_quote_tweet_preview_enabled: false,
+                    longform_notetweets_rich_text_read_enabled: true,
+                    longform_notetweets_inline_media_enabled: true,
+                    articles_preview_enabled: true,
+                    rweb_video_timestamps_enabled: true,
+                    rweb_tipjar_consumption_enabled: true,
+                    responsive_web_graphql_exclude_directive_enabled: true,
+                    verified_phone_label_enabled: false,
+                    freedom_of_speech_not_reach_fetch_enabled: true,
+                    standardized_nudges_misinfo: true,
+                    tweet_with_visibility_results_prefer_gql_limited_actions_policy_enabled: true,
+                    responsive_web_graphql_skip_user_profile_image_extensions_enabled: false,
+                    responsive_web_graphql_timeline_navigation_enabled: true,
+                    responsive_web_enhance_cards_enabled: false,
+                },
                 queryId: "oB-5XsHNAbjvARJEc8CZFw",
             });
         },
@@ -1338,7 +1516,9 @@ const proxyRoutes = [
             xhr.modReqHeaders["X-Twitter-Active-User"] = "yes";
             xhr.modReqHeaders["X-Twitter-Client-Language"] = "en";
             xhr.modReqHeaders["Authorization"] =
-                PUBLIC_TOKENS[localStorage.OTDuseDifferentToken === "1" ? 1 : 0];
+                PUBLIC_TOKENS[
+                    localStorage.OTDuseDifferentToken === "1" ? 1 : 0
+                ];
             delete xhr.modReqHeaders["X-Twitter-Client-Version"];
             if (xhr.modReqHeaders["x-act-as-user-id"]) {
                 xhr.storage.retweeter = xhr.modReqHeaders["x-act-as-user-id"];
@@ -1346,7 +1526,10 @@ const proxyRoutes = [
         },
         beforeSendBody: (xhr, body) => {
             return JSON.stringify({
-                variables: { source_tweet_id: xhr.storage.tweet_id, dark_request: false },
+                variables: {
+                    source_tweet_id: xhr.storage.tweet_id,
+                    dark_request: false,
+                },
                 queryId: "iQtK4dl5hBmXewYZuEOKVw",
             });
         },
@@ -1381,7 +1564,9 @@ const proxyRoutes = [
             xhr.storage.tweet_id = originalUrl.pathname.match(
                 /\/1.1\/statuses\/show\/(\d+).json/
             )[1];
-            xhr.modUrl = `https://${location.hostname}/i/api/graphql/KwGBbJZc6DBx8EKmyQSP7g/TweetDetail?variables=${encodeURIComponent(
+            xhr.modUrl = `https://${
+                location.hostname
+            }/i/api/graphql/KwGBbJZc6DBx8EKmyQSP7g/TweetDetail?variables=${encodeURIComponent(
                 JSON.stringify({
                     focalTweetId: xhr.storage.tweet_id,
                     with_rux_injections: false,
@@ -1423,8 +1608,7 @@ const proxyRoutes = [
             xhr.modReqHeaders["Content-Type"] = "application/json";
             xhr.modReqHeaders["X-Twitter-Active-User"] = "yes";
             xhr.modReqHeaders["X-Twitter-Client-Language"] = "en";
-            xhr.modReqHeaders["Authorization"] =
-                PUBLIC_TOKENS[1];
+            xhr.modReqHeaders["Authorization"] = PUBLIC_TOKENS[1];
             delete xhr.modReqHeaders["X-Twitter-Client-Version"];
         },
         afterRequest: (xhr) => {
@@ -1438,10 +1622,12 @@ const proxyRoutes = [
             if (data.errors && data.errors[0]) {
                 return {};
             }
-            let ic = data.data.threaded_conversation_with_injections_v2.instructions
-                .find((i) => i.type === "TimelineAddEntries")
-                .entries.find((e) => e.entryId === `tweet-${xhr.storage.tweet_id}`)
-                .content.itemContent;
+            let ic =
+                data.data.threaded_conversation_with_injections_v2.instructions
+                    .find((i) => i.type === "TimelineAddEntries")
+                    .entries.find(
+                        (e) => e.entryId === `tweet-${xhr.storage.tweet_id}`
+                    ).content.itemContent;
             let res = ic.tweet_results.result;
             let tweet = parseTweet(res);
             return tweet;
@@ -1453,7 +1639,9 @@ const proxyRoutes = [
         beforeRequest: (xhr) => {
             let originalUrl = new URL(xhr.originalUrl);
             xhr.storage.tweet_id = originalUrl.searchParams.get("id");
-            xhr.modUrl = `https://${location.hostname}/i/api/graphql/KwGBbJZc6DBx8EKmyQSP7g/TweetDetail?variables=${encodeURIComponent(
+            xhr.modUrl = `https://${
+                location.hostname
+            }/i/api/graphql/KwGBbJZc6DBx8EKmyQSP7g/TweetDetail?variables=${encodeURIComponent(
                 JSON.stringify({
                     focalTweetId: xhr.storage.tweet_id,
                     with_rux_injections: false,
@@ -1495,8 +1683,7 @@ const proxyRoutes = [
             xhr.modReqHeaders["Content-Type"] = "application/json";
             xhr.modReqHeaders["X-Twitter-Active-User"] = "yes";
             xhr.modReqHeaders["X-Twitter-Client-Language"] = "en";
-            xhr.modReqHeaders["Authorization"] =
-                PUBLIC_TOKENS[1];
+            xhr.modReqHeaders["Authorization"] = PUBLIC_TOKENS[1];
             delete xhr.modReqHeaders["X-Twitter-Client-Version"];
         },
         afterRequest: (xhr) => {
@@ -1510,10 +1697,12 @@ const proxyRoutes = [
             if (data.errors && data.errors[0]) {
                 return {};
             }
-            let ic = data.data.threaded_conversation_with_injections_v2.instructions
-                .find((i) => i.type === "TimelineAddEntries")
-                .entries.find((e) => e.entryId === `tweet-${xhr.storage.tweet_id}`)
-                .content.itemContent;
+            let ic =
+                data.data.threaded_conversation_with_injections_v2.instructions
+                    .find((i) => i.type === "TimelineAddEntries")
+                    .entries.find(
+                        (e) => e.entryId === `tweet-${xhr.storage.tweet_id}`
+                    ).content.itemContent;
             let res = ic.tweet_results.result;
             let tweet = parseTweet(res);
             return tweet;
@@ -1535,12 +1724,17 @@ const proxyRoutes = [
             xhr.modReqHeaders["X-Twitter-Active-User"] = "yes";
             xhr.modReqHeaders["X-Twitter-Client-Language"] = "en";
             xhr.modReqHeaders["Authorization"] =
-                PUBLIC_TOKENS[localStorage.OTDuseDifferentToken === "1" ? 1 : 0];
+                PUBLIC_TOKENS[
+                    localStorage.OTDuseDifferentToken === "1" ? 1 : 0
+                ];
             delete xhr.modReqHeaders["X-Twitter-Client-Version"];
         },
         beforeSendBody: (xhr, body) => {
             return JSON.stringify({
-                variables: { tweet_id: xhr.storage.tweet_id, dark_request: false },
+                variables: {
+                    tweet_id: xhr.storage.tweet_id,
+                    dark_request: false,
+                },
                 queryId: "VaenaVgh5q5ih7kvyVjgtg",
             });
         },
@@ -1586,14 +1780,20 @@ const proxyRoutes = [
                 if (!tweet.favorited) tweet.favorited = false;
                 if (!tweet.geo) tweet.geo = null;
                 if (!tweet.id) tweet.id = parseInt(id);
-                if (!tweet.in_reply_to_screen_name) tweet.in_reply_to_screen_name = null;
-                if (!tweet.in_reply_to_status_id) tweet.in_reply_to_status_id = null;
-                if (!tweet.in_reply_to_status_id_str) tweet.in_reply_to_status_id_str = null;
-                if (!tweet.in_reply_to_user_id) tweet.in_reply_to_user_id = null;
-                if (!tweet.in_reply_to_user_id_str) tweet.in_reply_to_user_id_str = null;
+                if (!tweet.in_reply_to_screen_name)
+                    tweet.in_reply_to_screen_name = null;
+                if (!tweet.in_reply_to_status_id)
+                    tweet.in_reply_to_status_id = null;
+                if (!tweet.in_reply_to_status_id_str)
+                    tweet.in_reply_to_status_id_str = null;
+                if (!tweet.in_reply_to_user_id)
+                    tweet.in_reply_to_user_id = null;
+                if (!tweet.in_reply_to_user_id_str)
+                    tweet.in_reply_to_user_id_str = null;
                 if (!tweet.is_quote_status) tweet.is_quote_status = false;
                 if (!tweet.place) tweet.place = null;
-                if (!tweet.supplemental_language) tweet.supplemental_language = null;
+                if (!tweet.supplemental_language)
+                    tweet.supplemental_language = null;
                 if (!tweet.retweeted) tweet.retweeted = false;
                 if (!tweet.truncated) tweet.truncated = false;
                 if (!tweet.user_id) tweet.user_id = parseInt(tweet.user_id_str);
@@ -1603,41 +1803,54 @@ const proxyRoutes = [
                 let user = data.globalObjects.users[id];
 
                 if (!user.default_profile) user.default_profile = false;
-                if (!user.default_profile_image) user.default_profile_image = false;
-                if (!user.entities.description) user.entities.description = { urls: [] };
-                if (!user.entities.description.urls) user.entities.description.urls = [];
+                if (!user.default_profile_image)
+                    user.default_profile_image = false;
+                if (!user.entities.description)
+                    user.entities.description = { urls: [] };
+                if (!user.entities.description.urls)
+                    user.entities.description.urls = [];
                 if (!user.entities.url) user.entities.url = { urls: [] };
                 if (!user.entities.url.urls) user.entities.url.urls = [];
                 if (!user.follow_request_sent) user.follow_request_sent = false;
                 if (!user.following) user.following = false;
-                if (!user.has_extended_profile) user.has_extended_profile = false;
-                if (!user.is_translation_enabled) user.is_translation_enabled = false;
+                if (!user.has_extended_profile)
+                    user.has_extended_profile = false;
+                if (!user.is_translation_enabled)
+                    user.is_translation_enabled = false;
                 if (!user.is_translator) user.is_translator = false;
                 if (!user.followed_by) user.followed_by = false;
                 if (!user.id) user.id = parseInt(id);
                 if (!user.lang) user.lang = null;
                 if (!user.notifications) user.notifications = false;
-                if (!user.profile_background_color) user.profile_background_color = "C0DEED";
+                if (!user.profile_background_color)
+                    user.profile_background_color = "C0DEED";
                 if (!user.profile_background_image_url)
                     user.profile_background_image_url =
                         "http://abs.twimg.com/images/themes/theme1/bg.png";
                 if (!user.profile_background_image_url_https)
                     user.profile_background_image_url_https =
                         "https://abs.twimg.com/images/themes/theme1/bg.png";
-                if (!user.profile_background_tile) user.profile_background_tile = false;
-                if (!user.profile_link_color) user.profile_link_color = "1DA1F2";
+                if (!user.profile_background_tile)
+                    user.profile_background_tile = false;
+                if (!user.profile_link_color)
+                    user.profile_link_color = "1DA1F2";
                 if (!user.profile_image_url && user.profile_image_url_https)
-                    user.profile_image_url = user.profile_image_url_https.replace(
-                        "https://",
-                        "http://"
-                    );
+                    user.profile_image_url =
+                        user.profile_image_url_https.replace(
+                            "https://",
+                            "http://"
+                        );
                 if (!user.profile_sidebar_border_color)
                     user.profile_sidebar_border_color = "000000";
-                if (!user.profile_sidebar_fill_color) user.profile_sidebar_fill_color = "DDEEF6";
-                if (!user.profile_text_color) user.profile_text_color = "333333";
-                if (!user.profile_use_background_image) user.profile_use_background_image = true;
+                if (!user.profile_sidebar_fill_color)
+                    user.profile_sidebar_fill_color = "DDEEF6";
+                if (!user.profile_text_color)
+                    user.profile_text_color = "333333";
+                if (!user.profile_use_background_image)
+                    user.profile_use_background_image = true;
                 if (!user.protected) user.protected = false;
-                if (!user.require_some_consent) user.require_some_consent = false;
+                if (!user.require_some_consent)
+                    user.require_some_consent = false;
                 if (!user.time_zone) user.time_zone = null;
                 if (!user.utc_offset) user.utc_offset = null;
                 if (!user.verified) user.verified = false;
@@ -1660,8 +1873,13 @@ const proxyRoutes = [
                             },
                         };
                         if (entry.content.timelineModule.items)
-                            for (let item of entry.content.timelineModule.items) {
-                                if (item.item && item.item.content && item.item.content.tweet) {
+                            for (let item of entry.content.timelineModule
+                                .items) {
+                                if (
+                                    item.item &&
+                                    item.item.content &&
+                                    item.item.content.tweet
+                                ) {
                                     newContent.item.content.conversationThread.conversationComponents.push(
                                         {
                                             conversationTweetComponent: {
@@ -1689,7 +1907,9 @@ const proxyRoutes = [
         afterRequest: (xhr) => {
             const state = {
                 client: {
-                    columns: localStorage.OTDcolumnIds ? JSON.parse(localStorage.OTDcolumnIds) : [],
+                    columns: localStorage.OTDcolumnIds
+                        ? JSON.parse(localStorage.OTDcolumnIds)
+                        : [],
                     mtime: new Date().toISOString(),
                     name: "blackbird",
                     settings: settings ?? {
@@ -1700,7 +1920,7 @@ const proxyRoutes = [
                         name_cache: {
                             customTimelines: {},
                             lists: {},
-                            users: {}
+                            users: {},
                         },
                         navbar_width: "full-size",
                         previous_splash_version: "4.0.220811153004",
@@ -1708,21 +1928,21 @@ const proxyRoutes = [
                         show_trends_filter_callout: false,
                         theme: "light",
                         use_narrow_columns: null,
-                        version: 2
+                        version: 2,
                     },
                 },
                 columns: columns ?? {},
                 decider: {},
                 feeds: feeds ?? {},
                 messages: [],
-                new: true
+                new: true,
             };
-            if(!settings) {
+            if (!settings) {
                 settings = state.client.settings;
                 localStorage.OTDsettings = JSON.stringify(settings);
             }
             cleanUp();
-            console.log('state', state);
+            console.log("state", state);
 
             return state;
         },
@@ -1742,12 +1962,12 @@ const proxyRoutes = [
         },
         beforeSendBody: (xhr, body) => {
             let json = JSON.parse(body);
-            console.log('state push', json);
-            if(json.columns) {
+            console.log("state push", json);
+            if (json.columns) {
                 localStorage.OTDcolumnIds = JSON.stringify(json.columns);
             }
-            if(json.settings && settings) {
-                for(let key in json.settings) {
+            if (json.settings && settings) {
+                for (let key in json.settings) {
                     settings[key] = json.settings[key];
                 }
                 localStorage.OTDsettings = JSON.stringify(settings);
@@ -1757,7 +1977,7 @@ const proxyRoutes = [
         },
         afterRequest: (xhr) => {
             return "";
-        }
+        },
     },
     // emulate sending feeds
     {
@@ -1775,19 +1995,19 @@ const proxyRoutes = [
         beforeSendBody: (xhr, body) => {
             let json = JSON.parse(body);
             let ids = [];
-            for(let i = 0; i < json.length; i++) {
+            for (let i = 0; i < json.length; i++) {
                 const id = json[i].id ?? generateID();
                 ids.push(id);
                 feeds[id] = json[i];
             }
             xhr.storage.ids = ids;
             localStorage.OTDfeeds = JSON.stringify(feeds);
-            console.log('feeds push', json, ids);
+            console.log("feeds push", json, ids);
             return body;
         },
         afterRequest: (xhr) => {
             return xhr.storage.ids;
-        }
+        },
     },
     // emulate sending columns
     {
@@ -1805,19 +2025,19 @@ const proxyRoutes = [
         beforeSendBody: (xhr, body) => {
             let json = JSON.parse(body);
             let ids = [];
-            for(let i = 0; i < json.length; i++) {
+            for (let i = 0; i < json.length; i++) {
                 const id = json[i].id ?? generateID();
                 ids.push(id);
                 columns[id] = json[i];
             }
             xhr.storage.ids = ids;
             localStorage.OTDcolumns = JSON.stringify(columns);
-            console.log('columns push', json, ids);
+            console.log("columns push", json, ids);
             return body;
         },
         afterRequest: (xhr) => {
             return xhr.storage.ids;
-        }
+        },
     },
     // getting user
     {
@@ -1839,24 +2059,30 @@ const proxyRoutes = [
                 console.error(e);
             }
             return xhr.responseText;
-        }
+        },
     },
     // DM messages
     {
         path: /\/1.1\/dm\/conversation\/(\d+)-(\d+).json/,
         method: "GET",
         afterRequest: (xhr) => {
-            return xhr.responseText.replaceAll("\\/\\/ton.twitter.com\\/1.1", "\\/\\/ton.x.com\\/i");
-        }
+            return xhr.responseText.replaceAll(
+                "\\/\\/ton.twitter.com\\/1.1",
+                "\\/\\/ton.x.com\\/i"
+            );
+        },
     },
     // Inbox
     {
         path: "/1.1/dm/user_updates.json",
         method: "GET",
         afterRequest: (xhr) => {
-            return xhr.responseText.replaceAll("\\/\\/ton.twitter.com\\/1.1", "\\/\\/ton.x.com\\/i");
-        }
-    }
+            return xhr.responseText.replaceAll(
+                "\\/\\/ton.twitter.com\\/1.1",
+                "\\/\\/ton.x.com\\/i"
+            );
+        },
+    },
 ];
 
 // wrap the XMLHttpRequest
@@ -1872,7 +2098,8 @@ XMLHttpRequest = function () {
             try {
                 let parsedUrl = new URL(url);
                 this.proxyRoute = proxyRoutes.find((route) => {
-                    if (route.method.toUpperCase() !== method.toUpperCase()) return false;
+                    if (route.method.toUpperCase() !== method.toUpperCase())
+                        return false;
                     if (typeof route.path === "string") {
                         return route.path === parsedUrl.pathname;
                     } else if (route.path instanceof RegExp) {
@@ -1887,10 +2114,27 @@ XMLHttpRequest = function () {
             }
 
             // both handlers must be set, because if openHandler never opens the request 'send' will always error
-            if(this.proxyRoute && this.proxyRoute.openHandler && this.proxyRoute.sendHandler) {
-                this.proxyRoute.openHandler(this, this.modMethod, this.modUrl, async, username, password);
+            if (
+                this.proxyRoute &&
+                this.proxyRoute.openHandler &&
+                this.proxyRoute.sendHandler
+            ) {
+                this.proxyRoute.openHandler(
+                    this,
+                    this.modMethod,
+                    this.modUrl,
+                    async,
+                    username,
+                    password
+                );
             } else {
-                this.open(this.modMethod, this.modUrl, async, username, password);
+                this.open(
+                    this.modMethod,
+                    this.modUrl,
+                    async,
+                    username,
+                    password
+                );
             }
         },
         setRequestHeader(name, value) {
@@ -1899,26 +2143,34 @@ XMLHttpRequest = function () {
         async send(body = null) {
             let parsedUrl = new URL(this.modUrl);
             let method = this.modMethod;
-            if(!method) {
+            if (!method) {
                 method = "GET";
             } else {
                 method = method.toUpperCase();
             }
-            if(
+            if (
                 this.readyState === 1 &&
-                (
-                    this.modUrl.includes("api.twitter.com") || 
-                    this.modUrl.includes("api.x.com") || 
+                (this.modUrl.includes("api.twitter.com") ||
+                    this.modUrl.includes("api.x.com") ||
                     this.modUrl.includes("twitter.com/i/api") ||
-                    this.modUrl.includes("x.com/i/api")
-                )
+                    this.modUrl.includes("x.com/i/api"))
             ) {
-                if(localStorage.device_id) this.setRequestHeader('X-Client-UUID', localStorage.device_id);
-                if(window.solveChallenge) {
+                if (localStorage.device_id)
+                    this.setRequestHeader(
+                        "X-Client-UUID",
+                        localStorage.device_id
+                    );
+                if (window.solveChallenge) {
                     try {
-                        this.setRequestHeader('x-client-transaction-id', await solveChallenge(parsedUrl.pathname, method));
+                        this.setRequestHeader(
+                            "x-client-transaction-id",
+                            await solveChallenge(parsedUrl.pathname, method)
+                        );
                     } catch (e) {
-                        if(localStorage.secureRequests && Date.now() - OTD_INIT_TIME > 3000) {
+                        if (
+                            localStorage.secureRequests &&
+                            Date.now() - OTD_INIT_TIME > 3000
+                        ) {
                             throw e;
                         }
                     }
@@ -1928,18 +2180,20 @@ XMLHttpRequest = function () {
                 this.proxyRoute.beforeSendHeaders(this);
             }
             try {
-                for (const [name, value] of Object.entries(this.modReqHeaders)) {
+                for (const [name, value] of Object.entries(
+                    this.modReqHeaders
+                )) {
                     this.setRequestHeader(name, value);
                 }
-            } catch(e) {
-                if(!String(e).includes('OPENED')) {
+            } catch (e) {
+                if (!String(e).includes("OPENED")) {
                     console.error(e);
                 }
             }
             if (this.proxyRoute && this.proxyRoute.beforeSendBody) {
                 body = this.proxyRoute.beforeSendBody(this, body);
             }
-            if(this.proxyRoute && this.proxyRoute.sendHandler) {
+            if (this.proxyRoute && this.proxyRoute.sendHandler) {
                 this.proxyRoute.sendHandler(this, body);
             } else {
                 this.send(body);
@@ -1947,7 +2201,8 @@ XMLHttpRequest = function () {
         },
         get(xhr, key) {
             if (!key in xhr) return undefined;
-            if (key === "responseText" && xhr._responseText) return xhr._responseText;
+            if (key === "responseText" && xhr._responseText)
+                return xhr._responseText;
             if (key === "responseText") return this.interceptResponseText(xhr);
             if (key === "readyState" && xhr._readyState) return xhr._readyState;
             if (key === "status" && xhr._status) return xhr._status;
@@ -1981,7 +2236,11 @@ XMLHttpRequest = function () {
         getAllResponseHeaders() {
             let headers = this.getAllResponseHeaders();
 
-            let override = this.responseHeaderOverride ? this.responseHeaderOverride : this.proxyRoute ? this.proxyRoute.responseHeaderOverride : undefined;
+            let override = this.responseHeaderOverride
+                ? this.responseHeaderOverride
+                : this.proxyRoute
+                ? this.proxyRoute.responseHeaderOverride
+                : undefined;
             if (this.proxyRoute && override) {
                 let splitHeaders = headers.split("\r\n");
                 let objHeaders = {};
@@ -1991,10 +2250,13 @@ XMLHttpRequest = function () {
                     let headerValue = splitHeader[1];
                     objHeaders[headerName.toLowerCase()] = headerValue;
                 }
-                for(let header in override) {
+                for (let header in override) {
                     objHeaders[header.toLowerCase()] = override[header]();
                 }
-                headers = Object.entries(objHeaders).filter(([_, value]) => value).map(([name, value]) => `${name}: ${value}`).join("\r\n");
+                headers = Object.entries(objHeaders)
+                    .filter(([_, value]) => value)
+                    .map(([name, value]) => `${name}: ${value}`)
+                    .join("\r\n");
             }
 
             return headers;
