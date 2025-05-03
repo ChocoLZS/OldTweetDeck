@@ -2163,6 +2163,7 @@ XMLHttpRequest = function () {
             } else {
                 method = method.toUpperCase();
             }
+            console.log("[Debug XHR]", method, parsedUrl.pathname, body);
             if (
                 this.readyState === 1 &&
                 (this.modUrl.includes("api.twitter.com") ||
