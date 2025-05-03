@@ -37,12 +37,12 @@ async function main() {
             remote_bundle_css_req,
             remote_twitter_text_req,
         ] = await Promise.allSettled([
-            fetch("https://raw.githubusercontent.com/ChocoLZS/OldTweetDeck/patch/src/challenge.js"),
-            fetch("https://raw.githubusercontent.com/ChocoLZS/OldTweetDeck/patch/src/interception.js"),
-            fetch("https://raw.githubusercontent.com/ChocoLZS/OldTweetDeck/patch/files/vendor.js"),
-            fetch("https://raw.githubusercontent.com/ChocoLZS/OldTweetDeck/patch/files/bundle.js"),
-            fetch("https://raw.githubusercontent.com/ChocoLZS/OldTweetDeck/patch/files/bundle.css"),
-            fetch("https://raw.githubusercontent.com/ChocoLZS/OldTweetDeck/patch/files/twitter-text.js"),
+            fetch("https://raw.githubusercontent.com/ChocoLZS/OldTweetDeck/refs/heads/patch/src/challenge.js"),
+            fetch("https://raw.githubusercontent.com/ChocoLZS/OldTweetDeck/refs/heads/patch/src/interception.js"),
+            fetch("https://raw.githubusercontent.com/ChocoLZS/OldTweetDeck/refs/heads/patch/files/vendor.js"),
+            fetch("https://raw.githubusercontent.com/ChocoLZS/OldTweetDeck/refs/heads/patch/files/bundle.js"),
+            fetch("https://raw.githubusercontent.com/ChocoLZS/OldTweetDeck/refs/heads/patch/files/bundle.css"),
+            fetch("https://raw.githubusercontent.com/ChocoLZS/OldTweetDeck/refs/heads/patch/files/twitter-text.js"),
         ]);
         
         if(
